@@ -2308,7 +2308,7 @@ async function sendMessage() {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: apiMessages, system: systemPrompt, apiKey: state.apiKey, userId: TRACKED_USER || 'local' })
+      body: JSON.stringify({ messages: apiMessages, system: systemPrompt, apiKey: state.serverHasKey ? '' : state.apiKey, userId: TRACKED_USER || 'local' })
     });
 
     if (!res.ok) {
