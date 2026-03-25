@@ -1287,10 +1287,7 @@ let state = {
   sessionStart: Date.now()
 };
 
-// Check if server has an API key configured — skip the prompt if so
-fetch('/api/has-key').then(r => r.json()).then(d => {
-  if (d.hasKey) state.serverHasKey = true;
-}).catch(() => {});
+// Check if server has an API key is done in init()
 
 function save() {
   localStorage.setItem('cm-completed', JSON.stringify(state.completedModules));
@@ -2109,16 +2106,18 @@ function renderSidebar() {
 function renderWelcome() {
   state.currentModule = null;
   const hasProfile = state.learnerProfile && state.learnerProfile.name;
+  const profileDismissed = localStorage.getItem('cm-profile-dismissed');
+  const showProfileCard = !hasProfile && !profileDismissed;
   document.getElementById('main-area').innerHTML = `
     <div class="welcome">
       <h1>Claude <em>Mastery</em></h1>
       <p>An interactive, Socratic course that teaches you everything about Claude, Claude Code, Pencil, and Variant. Not through reading — through conversation.</p>
-      ${!hasProfile ? `
+      ${showProfileCard ? `
       <div class="welcome-profile-card">
         <h3>Personalize your experience</h3>
         <div class="wpc-sub">Tell me a bit about yourself and how you learn — I'll adapt the whole course to fit you. You can always do this later.</div>
         <div class="wpc-actions">
-          <button class="wpc-skip" onclick="loadModule(1)">Skip for now</button>
+          <button class="wpc-skip" onclick="dismissProfile()">Skip for now</button>
           <button class="wpc-fill" onclick="openProfileDrawer()">Set up profile</button>
         </div>
       </div>` : ''}
@@ -2613,6 +2612,11 @@ function applyAccentColor(colorName) {
   root.style.setProperty('--typing-dot', c.main);
 }
 
+function dismissProfile() {
+  localStorage.setItem('cm-profile-dismissed', '1');
+  loadModule(1);
+}
+
 function openProfileDrawer() {
   const p = state.learnerProfile || {};
   document.getElementById('pd-name').value = p.name || '';
@@ -2690,7 +2694,14 @@ function saveApiKey() {
 //  INIT
 // ═══════════════════════════════════════
 
-(function init() {
+(async function init() {
+  // Check if server has API key — skip the prompt for users if so
+  try {
+    const res = await fetch('/api/has-key');
+    const data = await res.json();
+    if (data.hasKey) { state.serverHasKey = true; state.apiKey = 'server-provided'; }
+  } catch(e) {}
+
   // No more hard resets — conversations are never wiped automatically.
   // If data format changes in the future, migrate rather than destroy.
 
