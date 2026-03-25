@@ -1283,8 +1283,14 @@ let state = {
   learnerProfile: JSON.parse(localStorage.getItem('cm-profile') || 'null'),
   teachingMemory: JSON.parse(localStorage.getItem('cm-teaching') || '[]'),
   isStreaming: false,
+  serverHasKey: false,
   sessionStart: Date.now()
 };
+
+// Check if server has an API key configured — skip the prompt if so
+fetch('/api/has-key').then(r => r.json()).then(d => {
+  if (d.hasKey) state.serverHasKey = true;
+}).catch(() => {});
 
 function save() {
   localStorage.setItem('cm-completed', JSON.stringify(state.completedModules));
@@ -2241,7 +2247,7 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
-  if (!state.apiKey) { showApiModal(); return; }
+  if (!state.apiKey && !state.serverHasKey) { showApiModal(); return; }
 
   const mod = MODULES.find(m => m.id === state.currentModule);
   if (!mod) return;

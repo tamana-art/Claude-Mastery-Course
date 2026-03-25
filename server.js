@@ -34,6 +34,10 @@ app.get('/api/usage', (req, res) => {
   res.json(loadUsage());
 });
 
+app.get('/api/has-key', (req, res) => {
+  res.json({ hasKey: !!process.env.ANTHROPIC_API_KEY });
+});
+
 app.post('/api/chat', async (req, res) => {
   const { messages, system, apiKey, userId } = req.body;
   const key = apiKey || process.env.ANTHROPIC_API_KEY;
