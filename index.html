@@ -861,7 +861,7 @@ body {
 <canvas id="fireworks-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:9999;display:none;"></canvas>
 
 <!-- API KEY MODAL -->
-<div class="modal-overlay" id="api-modal" style="display:none;">
+<div class="modal-overlay" id="api-modal" style="display:none !important;" data-hidden="true">
   <div class="modal">
     <h2>Connect to Claude</h2>
     <p>To make this course interactive, we need your Anthropic API key. It's stored in your browser session only — never saved or sent anywhere else.</p>
@@ -1255,7 +1255,7 @@ WITH variables: 1 design that adapts</div>
 // ═══════════════════════════════════════
 
 // Set this to your deployed Google Apps Script URL to enable progress tracking
-const TRACKING_WEBHOOK = localStorage.getItem('cm-tracking-webhook') || '';
+let TRACKING_WEBHOOK = localStorage.getItem('cm-tracking-webhook') || '';
 
 // Read user identity from URL params (?user=ajmal) or localStorage
 function getTrackedUser() {
@@ -2678,7 +2678,12 @@ function updateProfileBtn() {
 }
 
 // API Key
-function showApiModal() { document.getElementById('api-modal').style.display = 'flex'; }
+function showApiModal() {
+  if (state.serverHasKey) return;
+  const m = document.getElementById('api-modal');
+  m.removeAttribute('data-hidden');
+  m.style.cssText = 'display:flex !important;';
+}
 function saveApiKey() {
   const key = document.getElementById('api-key-input').value.trim();
   if (!key.startsWith('sk-')) {
@@ -2695,11 +2700,12 @@ function saveApiKey() {
 // ═══════════════════════════════════════
 
 (async function init() {
-  // Check if server has API key — skip the prompt for users if so
+  // Check server config — API key and tracking webhook
   try {
-    const res = await fetch('/api/has-key');
+    const res = await fetch('/api/config');
     const data = await res.json();
     if (data.hasKey) { state.serverHasKey = true; state.apiKey = 'server-provided'; }
+    if (data.trackingWebhook) { TRACKING_WEBHOOK = data.trackingWebhook; }
   } catch(e) {}
 
   // No more hard resets — conversations are never wiped automatically.

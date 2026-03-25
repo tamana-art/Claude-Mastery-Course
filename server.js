@@ -38,6 +38,13 @@ app.get('/api/has-key', (req, res) => {
   res.json({ hasKey: !!process.env.ANTHROPIC_API_KEY });
 });
 
+app.get('/api/config', (req, res) => {
+  res.json({
+    hasKey: !!process.env.ANTHROPIC_API_KEY,
+    trackingWebhook: process.env.TRACKING_WEBHOOK || ''
+  });
+});
+
 app.post('/api/chat', async (req, res) => {
   const { messages, system, apiKey, userId } = req.body;
   const key = apiKey || process.env.ANTHROPIC_API_KEY;
