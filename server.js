@@ -99,6 +99,24 @@ app.post('/api/chat', async (req, res) => {
       if (usage.history.length > 100) usage.history = usage.history.slice(-100);
 
       saveUsage(usage);
+
+      // Send usage to Google Sheet for persistence
+      const webhook = process.env.TRACKING_WEBHOOK;
+      if (webhook) {
+        fetch(webhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            user: user,
+            event: 'api_usage',
+            inputTokens: inp,
+            outputTokens: out,
+            cost: cost.toFixed(6),
+            totalRequests: usage.byUser[user].requests,
+            totalCost: usage.byUser[user].cost.toFixed(6)
+          })
+        }).catch(() => {});
+      }
     }
 
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);

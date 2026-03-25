@@ -75,11 +75,44 @@ function doPost(e) {
       logSheet.appendRow(['Timestamp', 'User', 'Event', 'Details']);
     }
 
+    // Track API usage on a dedicated sheet
+    if (event === 'api_usage') {
+      let usageSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('API Usage');
+      if (!usageSheet) {
+        usageSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet('API Usage');
+        usageSheet.appendRow(['User', 'Total Messages', 'Total Cost ($)', 'Last Active']);
+      }
+
+      // Find or create row for this user
+      const usageLastRow = usageSheet.getLastRow();
+      let usageRow = -1;
+      if (usageLastRow > 1) {
+        const usageUsers = usageSheet.getRange(2, 1, usageLastRow - 1, 1).getValues();
+        for (let i = 0; i < usageUsers.length; i++) {
+          if (usageUsers[i][0] === displayName) { usageRow = i + 2; break; }
+        }
+      }
+
+      const usageData = [
+        displayName,
+        data.totalRequests || 0,
+        '$' + (data.totalCost || '0.000000'),
+        new Date().toLocaleString('en-US', { timeZone: 'America/Toronto' })
+      ];
+
+      if (usageRow > 0) {
+        usageSheet.getRange(usageRow, 1, 1, 4).setValues([usageData]);
+      } else {
+        usageSheet.appendRow(usageData);
+      }
+    }
+
     let eventDetail = '';
     if (event === 'concept_unlock') eventDetail = 'Unlocked: ' + (data.unlockedConcept || '');
     if (event === 'module_complete') eventDetail = 'Completed: ' + (data.completedModule || '');
     if (event === 'session_start') eventDetail = 'Started session';
     if (event === 'heartbeat') eventDetail = 'Still active';
+    if (event === 'api_usage') eventDetail = 'Tokens: ' + (data.inputTokens || 0) + ' in / ' + (data.outputTokens || 0) + ' out — $' + (data.cost || '0');
 
     logSheet.appendRow([
       new Date().toLocaleString('en-US', { timeZone: 'America/Toronto' }),
