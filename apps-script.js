@@ -75,35 +75,46 @@ function doPost(e) {
       logSheet.appendRow(['Timestamp', 'User', 'Event', 'Details']);
     }
 
-    // Track API usage on a dedicated sheet
+    // Track API usage — one row per user per day (EST)
     if (event === 'api_usage') {
       let usageSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('API Usage');
       if (!usageSheet) {
         usageSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet('API Usage');
-        usageSheet.appendRow(['User', 'Total Messages', 'Total Cost ($)', 'Last Active']);
+        usageSheet.appendRow(['Date', 'User', 'Messages', 'Input Tokens', 'Output Tokens', 'Session Cost ($)']);
+        // Freeze header row for sorting
+        usageSheet.setFrozenRows(1);
       }
 
-      // Find or create row for this user
+      const today = new Date().toLocaleDateString('en-US', { timeZone: 'America/Toronto' });
+      const inp = data.inputTokens || 0;
+      const out = data.outputTokens || 0;
+      const msgCost = parseFloat(data.cost || 0);
+
+      // Find existing row for this user + today's date
       const usageLastRow = usageSheet.getLastRow();
       let usageRow = -1;
       if (usageLastRow > 1) {
-        const usageUsers = usageSheet.getRange(2, 1, usageLastRow - 1, 1).getValues();
-        for (let i = 0; i < usageUsers.length; i++) {
-          if (usageUsers[i][0] === displayName) { usageRow = i + 2; break; }
+        const rows = usageSheet.getRange(2, 1, usageLastRow - 1, 2).getValues();
+        for (let i = 0; i < rows.length; i++) {
+          if (rows[i][0] === today && rows[i][1] === displayName) {
+            usageRow = i + 2;
+            break;
+          }
         }
       }
 
-      const usageData = [
-        displayName,
-        data.totalRequests || 0,
-        '$' + (data.totalCost || '0.000000'),
-        new Date().toLocaleString('en-US', { timeZone: 'America/Toronto' })
-      ];
-
       if (usageRow > 0) {
-        usageSheet.getRange(usageRow, 1, 1, 4).setValues([usageData]);
+        // Update existing row — add to totals
+        const existing = usageSheet.getRange(usageRow, 3, 1, 4).getValues()[0];
+        usageSheet.getRange(usageRow, 3, 1, 4).setValues([[
+          (existing[0] || 0) + 1,
+          (existing[1] || 0) + inp,
+          (existing[2] || 0) + out,
+          parseFloat((parseFloat(existing[3] || 0) + msgCost).toFixed(6))
+        ]]);
       } else {
-        usageSheet.appendRow(usageData);
+        // New row for this user + date
+        usageSheet.appendRow([today, displayName, 1, inp, out, msgCost.toFixed(6)]);
       }
     }
 
