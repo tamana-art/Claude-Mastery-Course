@@ -204,6 +204,13 @@ body {
   background: var(--bg-primary);
   flex-shrink: 0;
 }
+.reset-module-btn {
+  margin-top: 10px; padding: 6px 16px; font-size: 12px; font-weight: 500;
+  font-family: var(--sans, 'DM Sans', system-ui); color: var(--text-muted);
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer; transition: all 0.2s;
+}
+.reset-module-btn:hover { color: #f87171; border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.06); }
 .module-eyebrow {
   font-size: 10px; text-transform: uppercase; letter-spacing: 2.5px;
   color: var(--accent); font-weight: 600; margin-bottom: 6px;
@@ -2146,6 +2153,7 @@ function renderModuleView(mod) {
       <div class="module-main-title">${mod.title}</div>
       <div class="module-main-subtitle">${mod.subtitle}</div>
       <div class="concept-dots">${dots}</div>
+      <button class="reset-module-btn" onclick="resetModule(${mod.id})">Reset Module</button>
     </div>
     <div class="conversation" id="conversation">
       <div class="conv-inner" id="conv-inner"></div>
@@ -2610,6 +2618,19 @@ function applyAccentColor(colorName) {
   root.style.setProperty('--accent-soft', c.soft);
   root.style.setProperty('--accent-border', c.border);
   root.style.setProperty('--typing-dot', c.main);
+}
+
+function resetModule(modId) {
+  if (!confirm('Reset this module? Your conversation and progress for this module will be cleared.')) return;
+  // Reset concept progress for this module
+  state.moduleProgress[modId] = 0;
+  // Clear conversation for this module
+  state.conversations[modId] = [];
+  // Remove from completed if it was completed
+  state.completedModules = state.completedModules.filter(id => id !== modId);
+  save();
+  // Reload the module view
+  loadModule(modId);
 }
 
 function dismissProfile() {
